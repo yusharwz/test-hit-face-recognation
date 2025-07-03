@@ -29,8 +29,10 @@ type RequestPayload struct {
 	Comparator     string `json:"comparator"`
 }
 
-func sendRequest(client *http.Client, wg *sync.WaitGroup, userID int, imageToCompare, comparator string) {
-	defer wg.Done()
+// PERBAIKAN: Menghapus parameter `wg *sync.WaitGroup` dari fungsi ini.
+// Fungsi ini sekarang hanya bertanggung jawab untuk mengirim request.
+func sendRequest(client *http.Client, userID int, imageToCompare, comparator string) {
+	// PERBAIKAN: Menghapus `defer wg.Done()` dari sini.
 
 	payload := RequestPayload{
 		ImageToCompare: imageToCompare,
@@ -54,7 +56,8 @@ func sendRequest(client *http.Client, wg *sync.WaitGroup, userID int, imageToCom
 
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("[User %d] Request error: %v\n", userID, err)
+		// Menambahkan timestamp untuk log error agar konsisten
+		fmt.Printf("[User %d] %s Request error: %v\n", userID, time.Now().Format("2006-01-02 15:04:05.000"), err)
 		return
 	}
 	defer resp.Body.Close()
@@ -66,116 +69,61 @@ func sendRequest(client *http.Client, wg *sync.WaitGroup, userID int, imageToCom
 func main() {
 	fmt.Println("Starting " + fmt.Sprint(totalUsers) + " concurrent requests...")
 
-	http.HandleFunc("/compare", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		err := r.ParseMultipartForm(32 << 20)
-		if err != nil {
-			http.Error(w, "Failed to parse form", http.StatusBadRequest)
-			return
-		}
-
-		file1, _, err := r.FormFile("image1")
-		if err != nil {
-			http.Error(w, "Image1 required", http.StatusBadRequest)
-			return
-		}
-		defer file1.Close()
-
-		file2, _, err := r.FormFile("image2")
-		if err != nil {
-			http.Error(w, "Image2 required", http.StatusBadRequest)
-			return
-		}
-		defer file2.Close()
-
-		compressedImage1, err := compressImage(file1)
-		if err != nil {
-			http.Error(w, "Failed to compress image1", http.StatusInternalServerError)
-			return
-		}
-
-		compressedImage2, err := compressImage(file2)
-		if err != nil {
-			http.Error(w, "Failed to compress image2", http.StatusInternalServerError)
-			return
-		}
-
-		result := map[string]string{
-			"imageToCompare": compressedImage1,
-			"comparator":     compressedImage2,
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(result)
-	})
-
 	var wg sync.WaitGroup
-	client := &http.Client{Timeout: 12000 * time.Second}
+	// Menggunakan transport kustom untuk mengelola koneksi
+	transport := &http.Transport{
+		MaxIdleConns:        totalUsers,
+		MaxIdleConnsPerHost: totalUsers,
+		IdleConnTimeout:     90 * time.Second,
+	}
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   120 * time.Second, // Mengurangi timeout agar tidak terlalu lama
+	}
 
+	// Menambahkan counter ke WaitGroup sebelum memulai loop
 	wg.Add(totalUsers)
 
-	responseTimes := make([]time.Duration, totalUsers)
-	var mu sync.Mutex
-
 	startTime := time.Now()
-	var firstResponseTime time.Duration
-	var minResponseTime, maxResponseTime time.Duration
 
 	for i := 1; i <= totalUsers; i++ {
 		go func(userID int) {
+			// defer wg.Done() adalah satu-satunya panggilan yang diperlukan.
+			// Ini akan dieksekusi ketika goroutine selesai.
 			defer wg.Done()
-			reqStart := time.Now()
-			sendRequest(client, &wg, userID, imageToCompare, comparator)
-			reqEnd := time.Now()
-			duration := reqEnd.Sub(reqStart)
 
-			mu.Lock()
-			responseTimes[userID-1] = duration
-			if minResponseTime == 0 || duration < minResponseTime {
-				minResponseTime = duration
-			}
-			if duration > maxResponseTime {
-				maxResponseTime = duration
-			}
-			if firstResponseTime == 0 {
-				firstResponseTime = reqEnd.Sub(startTime)
-			}
-			mu.Unlock()
-			fmt.Printf("Request sent for user %d\n", userID)
+			// PERBAIKAN: Memanggil sendRequest tanpa meneruskan `wg`.
+			sendRequest(client, userID, imageToCompare, comparator)
+
+			// Memindahkan log ini ke sini agar lebih akurat menunjukkan kapan request selesai diproses oleh goroutine
+			// fmt.Printf("Goroutine for user %d finished processing.\n", userID)
 		}(i)
 	}
 
+	// Menunggu semua goroutine selesai (counter WaitGroup menjadi 0)
 	wg.Wait()
 	endTime := time.Now()
 
-	var total time.Duration
-	for _, t := range responseTimes {
-		total += t
-	}
-	// avg := total / time.Duration(len(responseTimes))
-
-	// fmt.Printf("Average request-response time: %v\n", avg)
-	// fmt.Printf("Minimum request-response time: %v\n", minResponseTime)
-	// fmt.Printf("Maximum request-response time: %v\n", maxResponseTime)
-	fmt.Printf("Total execution time: %v\n", endTime.Sub(startTime)-firstResponseTime)
+	fmt.Printf("Total execution time: %v\n", endTime.Sub(startTime))
 	fmt.Println("All requests completed.")
 }
 
+// Fungsi compressImage tidak digunakan dalam flow load test ini,
+// tetapi disertakan untuk kelengkapan jika diperlukan di bagian lain.
 func compressImage(file multipart.File) (string, error) {
-	defer file.Close()
+	// Tidak perlu menutup file di sini karena sudah ditutup oleh pemanggil
+	// defer file.Close()
 
 	img, _, err := image.Decode(file)
 	if err != nil {
 		return "", err
 	}
 
-	resizedImg := resize.Resize(50, 50, img, resize.Lanczos3)
+	// Mengubah ukuran gambar menjadi lebih kecil untuk kompresi
+	resizedImg := resize.Resize(100, 0, img, resize.Lanczos3) // Mengubah ukuran berdasarkan lebar
 
 	var buf bytes.Buffer
-	err = jpeg.Encode(&buf, resizedImg, &jpeg.Options{Quality: 80})
+	err = jpeg.Encode(&buf, resizedImg, &jpeg.Options{Quality: 75}) // Kualitas 75 adalah kompromi yang baik
 	if err != nil {
 		return "", err
 	}
