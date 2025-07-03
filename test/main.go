@@ -98,7 +98,7 @@ func main() {
 	wg.Wait()
 	endTime := time.Now()
 
-	fmt.Printf("Total execution time: %v\n", endTime.Sub(startTime))
+	fmt.Printf("Total execution time for %d users: %v\n", totalUsers, endTime.Sub(startTime))
 	fmt.Println("All requests completed.")
 }
 
