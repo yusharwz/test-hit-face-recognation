@@ -64,7 +64,7 @@ func sendRequest(client *http.Client, wg *sync.WaitGroup, userID int, imageToCom
 }
 
 func main() {
-	fmt.Println("Starting concurrent requests...")
+	fmt.Println("Starting " + fmt.Sprint(totalUsers) + " concurrent requests...")
 
 	http.HandleFunc("/compare", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
