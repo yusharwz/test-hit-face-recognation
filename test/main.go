@@ -112,6 +112,7 @@ func main() {
 	adjustedDuration := endTime.Sub(startTime) - firstReqTime.Sub(startTime)
 	fmt.Println()
 	fmt.Println("--- Hasil Load Test ---")
+	fmt.Printf("📦 Total Request    : %d\n", totalUsers)
 	fmt.Printf("✅ Request Berhasil: %d\n", successCount)
 	fmt.Printf("❌ Request Gagal   : %d\n", failCount)
 	fmt.Printf("⏱️  Waktu Selesai   : %.2f detik\n", adjustedDuration.Seconds())
