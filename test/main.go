@@ -74,7 +74,7 @@ func main() {
 	transport := &http.Transport{
 		MaxIdleConns:        totalUsers,
 		MaxIdleConnsPerHost: totalUsers,
-		IdleConnTimeout:     90 * time.Second,
+		IdleConnTimeout:     100 * time.Minute,
 	}
 	client := &http.Client{
 		Transport: transport,
