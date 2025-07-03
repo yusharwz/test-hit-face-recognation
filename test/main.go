@@ -78,7 +78,7 @@ func main() {
 	}
 	client := &http.Client{
 		Transport: transport,
-		Timeout:   120 * time.Second, // Mengurangi timeout agar tidak terlalu lama
+		Timeout:   120 * time.Minute, // Mengurangi timeout agar tidak terlalu lama
 	}
 
 	// Menambahkan counter ke WaitGroup sebelum memulai loop
