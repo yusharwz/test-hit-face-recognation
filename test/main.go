@@ -23,11 +23,7 @@ type RequestPayload struct {
 	Comparator     string `json:"comparator"`
 }
 
-// PERBAIKAN: Menghapus parameter `wg *sync.WaitGroup` dari fungsi ini.
-// Fungsi ini sekarang hanya bertanggung jawab untuk mengirim request.
 func sendRequest(client *http.Client, userID int, imageToCompare, comparator string) {
-	// PERBAIKAN: Menghapus `defer wg.Done()` dari sini.
-
 	payload := RequestPayload{
 		ImageToCompare: imageToCompare,
 		Comparator:     comparator,
@@ -48,80 +44,49 @@ func sendRequest(client *http.Client, userID int, imageToCompare, comparator str
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-api-key", apiKey)
 
+	start := time.Now()
 	resp, err := client.Do(req)
+	duration := time.Since(start)
+
 	if err != nil {
-		// Menambahkan timestamp untuk log error agar konsisten
-		fmt.Printf("[User %d] %s Request error: %v\n", userID, time.Now().Format("2006-01-02 15:04:05.000"), err)
+		fmt.Printf("[User %d] %s Request error: %v (Duration: %v)\n", userID, time.Now().Format("2006-01-02 15:04:05.000"), err, duration)
 		return
 	}
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
-	fmt.Printf("[User %d] %s Status: %s, Body: %s\n", userID, time.Now().Format("2006-01-02 15:04:05.000"), resp.Status, body)
+	fmt.Printf("[User %d] %s Response Time: %v, Status: %s, Body: %s\n",
+		userID, time.Now().Format("2006-01-02 15:04:05.000"), duration, resp.Status, string(body))
 }
 
 func main() {
 	fmt.Println("Starting " + fmt.Sprint(totalUsers) + " concurrent requests...")
 
 	var wg sync.WaitGroup
-	// Menggunakan transport kustom untuk mengelola koneksi
 	transport := &http.Transport{
 		MaxIdleConns:        totalUsers,
 		MaxIdleConnsPerHost: totalUsers,
-		IdleConnTimeout:     100 * time.Minute,
+		IdleConnTimeout:     100 * time.Second,
 	}
 	client := &http.Client{
 		Transport: transport,
-		Timeout:   120 * time.Minute, // Mengurangi timeout agar tidak terlalu lama
+		Timeout:   120 * time.Second,
 	}
 
-	// Menambahkan counter ke WaitGroup sebelum memulai loop
 	wg.Add(totalUsers)
 
 	startTime := time.Now()
 
 	for i := 1; i <= totalUsers; i++ {
 		go func(userID int) {
-			// defer wg.Done() adalah satu-satunya panggilan yang diperlukan.
-			// Ini akan dieksekusi ketika goroutine selesai.
 			defer wg.Done()
-
-			// PERBAIKAN: Memanggil sendRequest tanpa meneruskan `wg`.
 			sendRequest(client, userID, imageToCompare, comparator)
-
-			// Memindahkan log ini ke sini agar lebih akurat menunjukkan kapan request selesai diproses oleh goroutine
-			// fmt.Printf("Goroutine for user %d finished processing.\n", userID)
 		}(i)
 	}
 
-	// Menunggu semua goroutine selesai (counter WaitGroup menjadi 0)
 	wg.Wait()
 	endTime := time.Now()
 
 	fmt.Printf("Total execution time for %d users: %v\n", totalUsers, endTime.Sub(startTime))
 	fmt.Println("All requests completed.")
 }
-
-// Fungsi compressImage tidak digunakan dalam flow load test ini,
-// tetapi disertakan untuk kelengkapan jika diperlukan di bagian lain.
-// func compressImage(file multipart.File) (string, error) {
-// 	// Tidak perlu menutup file di sini karena sudah ditutup oleh pemanggil
-// 	// defer file.Close()
-
-// 	img, _, err := image.Decode(file)
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	// Mengubah ukuran gambar menjadi lebih kecil untuk kompresi
-// 	resizedImg := resize.Resize(100, 0, img, resize.Lanczos3) // Mengubah ukuran berdasarkan lebar
-
-// 	var buf bytes.Buffer
-// 	err = jpeg.Encode(&buf, resizedImg, &jpeg.Options{Quality: 75}) // Kualitas 75 adalah kompromi yang baik
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
-// 	return encoded, nil
-// }
