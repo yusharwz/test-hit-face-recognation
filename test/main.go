@@ -55,8 +55,8 @@ func sendRequest(client *http.Client, userID int, imageToCompare, comparator str
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
-	fmt.Printf("[User %d] %s Response Time: %v, Status: %s, Body: %s\n",
-		userID, time.Now().Format("2006-01-02 15:04:05.000"), duration, resp.Status, string(body))
+	fmt.Printf("[User %d] Status: %s, Body: %s\n",
+		userID, resp.Status, string(body))
 
 	select {
 	case firstReqDone <- time.Now():
