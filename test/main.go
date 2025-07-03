@@ -58,11 +58,9 @@ func sendRequest(client *http.Client, userID int, imageToCompare, comparator str
 	fmt.Printf("[User %d] %s Response Time: %v, Status: %s, Body: %s\n",
 		userID, time.Now().Format("2006-01-02 15:04:05.000"), duration, resp.Status, string(body))
 
-	if userID == 1 {
-		select {
-		case firstReqDone <- time.Now():
-		default:
-		}
+	select {
+	case firstReqDone <- time.Now():
+	default:
 	}
 }
 
@@ -103,6 +101,6 @@ func main() {
 	}
 
 	adjustedDuration := endTime.Sub(startTime) - firstReqTime.Sub(startTime)
-	fmt.Printf("Total execution time for %d users (excluding first request duration): %v\n", totalUsers, adjustedDuration)
+	fmt.Printf("Total execution time for %d users (excluding first finished request duration): %v\n", totalUsers, adjustedDuration)
 	fmt.Println("All requests completed.")
 }
