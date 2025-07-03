@@ -23,7 +23,7 @@ type RequestPayload struct {
 	Comparator     string `json:"comparator"`
 }
 
-func sendRequest(client *http.Client, userID int, imageToCompare, comparator string) {
+func sendRequest(client *http.Client, userID int, imageToCompare, comparator string, firstReqDone chan time.Time) {
 	payload := RequestPayload{
 		ImageToCompare: imageToCompare,
 		Comparator:     comparator,
@@ -57,6 +57,13 @@ func sendRequest(client *http.Client, userID int, imageToCompare, comparator str
 	body, _ := io.ReadAll(resp.Body)
 	fmt.Printf("[User %d] %s Response Time: %v, Status: %s, Body: %s\n",
 		userID, time.Now().Format("2006-01-02 15:04:05.000"), duration, resp.Status, string(body))
+
+	if userID == 1 {
+		select {
+		case firstReqDone <- time.Now():
+		default:
+		}
+	}
 }
 
 func main() {
@@ -76,17 +83,26 @@ func main() {
 	wg.Add(totalUsers)
 
 	startTime := time.Now()
+	firstReqDone := make(chan time.Time, 1)
 
 	for i := 1; i <= totalUsers; i++ {
 		go func(userID int) {
 			defer wg.Done()
-			sendRequest(client, userID, imageToCompare, comparator)
+			sendRequest(client, userID, imageToCompare, comparator, firstReqDone)
 		}(i)
 	}
 
 	wg.Wait()
 	endTime := time.Now()
 
-	fmt.Printf("Total execution time for %d users: %v\n", totalUsers, endTime.Sub(startTime))
+	var firstReqTime time.Time
+	select {
+	case firstReqTime = <-firstReqDone:
+	default:
+		firstReqTime = startTime
+	}
+
+	adjustedDuration := endTime.Sub(startTime) - firstReqTime.Sub(startTime)
+	fmt.Printf("Total execution time for %d users (excluding first request duration): %v\n", totalUsers, adjustedDuration)
 	fmt.Println("All requests completed.")
 }
