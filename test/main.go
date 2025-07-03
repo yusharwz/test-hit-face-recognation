@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -23,7 +24,7 @@ type RequestPayload struct {
 	Comparator     string `json:"comparator"`
 }
 
-func sendRequest(client *http.Client, userID int, imageToCompare, comparator string, firstReqDone chan time.Time) {
+func sendRequest(client *http.Client, userID int, imageToCompare, comparator string, firstReqDone chan time.Time) bool {
 	payload := RequestPayload{
 		ImageToCompare: imageToCompare,
 		Comparator:     comparator,
@@ -32,13 +33,13 @@ func sendRequest(client *http.Client, userID int, imageToCompare, comparator str
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		fmt.Printf("[User %d] %s JSON marshal error: %v\n", userID, time.Now().Format("2006-01-02 15:04:05.000"), err)
-		return
+		return false
 	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Printf("[User %d] Error creating request: %v\n", userID, err)
-		return
+		return false
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -50,7 +51,7 @@ func sendRequest(client *http.Client, userID int, imageToCompare, comparator str
 
 	if err != nil {
 		fmt.Printf("[User %d] %s Request error: %v (Duration: %v)\n", userID, time.Now().Format("2006-01-02 15:04:05.000"), err, duration)
-		return
+		return false
 	}
 	defer resp.Body.Close()
 
@@ -62,12 +63,16 @@ func sendRequest(client *http.Client, userID int, imageToCompare, comparator str
 	case firstReqDone <- time.Now():
 	default:
 	}
+
+	return resp.StatusCode == http.StatusOK
 }
 
 func main() {
-	fmt.Println("Starting " + fmt.Sprint(totalUsers) + " concurrent requests...")
+	fmt.Printf("🚀 Memulai load test ke: %s\n", url)
+	fmt.Printf("👥 Jumlah pengguna konkuren: %d\n\n", totalUsers)
 
 	var wg sync.WaitGroup
+	var successCount, failCount int64
 	transport := &http.Transport{
 		MaxIdleConns:        totalUsers,
 		MaxIdleConnsPerHost: totalUsers,
@@ -86,7 +91,11 @@ func main() {
 	for i := 1; i <= totalUsers; i++ {
 		go func(userID int) {
 			defer wg.Done()
-			sendRequest(client, userID, imageToCompare, comparator, firstReqDone)
+			if sendRequest(client, userID, imageToCompare, comparator, firstReqDone) {
+				atomic.AddInt64(&successCount, 1)
+			} else {
+				atomic.AddInt64(&failCount, 1)
+			}
 		}(i)
 	}
 
@@ -102,6 +111,9 @@ func main() {
 
 	adjustedDuration := endTime.Sub(startTime) - firstReqTime.Sub(startTime)
 	fmt.Println()
-	fmt.Printf("Total execution time for %d users: %v\n", totalUsers, adjustedDuration)
-	fmt.Println("All requests completed.")
+	fmt.Println("--- Hasil Load Test ---")
+	fmt.Printf("✅ Request Berhasil: %d\n", successCount)
+	fmt.Printf("❌ Request Gagal   : %d\n", failCount)
+	fmt.Printf("⏱️  Waktu Selesai   : %.2f detik\n", adjustedDuration.Seconds())
+	fmt.Println("-----------------------")
 }
