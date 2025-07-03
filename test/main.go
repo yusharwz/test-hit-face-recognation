@@ -102,6 +102,6 @@ func main() {
 
 	adjustedDuration := endTime.Sub(startTime) - firstReqTime.Sub(startTime)
 	fmt.Println()
-	fmt.Printf("Total execution time for %d users (excluding first finished request duration): %v\n", totalUsers, adjustedDuration)
+	fmt.Printf("Total execution time for %d users: %v\n", totalUsers, adjustedDuration)
 	fmt.Println("All requests completed.")
 }
