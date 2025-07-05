@@ -23,12 +23,22 @@ const (
 	concurrentUsers = 50
 )
 
-func sendRequest(wg *sync.WaitGroup, successCounter *uint64, failureCounter *uint64) {
+type Config struct {
+	EndpointURL     string
+	ImagePath       string
+	JWTToken        string
+	AttendanceID    string
+	CheckType       string
+	ConcurrentUsers int
+	RequestTimeout  time.Duration
+}
+
+func sendRequest(wg *sync.WaitGroup, client *http.Client, config Config, successCounter, failureCounter *uint64) {
 	defer wg.Done()
 
-	file, err := os.Open(imagePath)
+	file, err := os.Open(config.ImagePath)
 	if err != nil {
-		fmt.Printf("[Gagal] Error membuka file '%s': %v\n", imagePath, err)
+		fmt.Printf("[Gagal] Error membuka file '%s': %v\n", config.ImagePath, err)
 		atomic.AddUint64(failureCounter, 1)
 		return
 	}
@@ -36,37 +46,32 @@ func sendRequest(wg *sync.WaitGroup, successCounter *uint64, failureCounter *uin
 
 	var requestBody bytes.Buffer
 	writer := multipart.NewWriter(&requestBody)
+	_ = writer.WriteField("attendanceId", config.AttendanceID)
+	_ = writer.WriteField("for", config.CheckType)
 
-	_ = writer.WriteField("attendanceId", attendanceId)
-	_ = writer.WriteField("for", checkType)
-
-	part, err := writer.CreateFormFile("uploadImage", filepath.Base(imagePath))
+	part, err := writer.CreateFormFile("uploadImage", filepath.Base(config.ImagePath))
 	if err != nil {
 		fmt.Printf("[Gagal] Error membuat form file: %v\n", err)
 		atomic.AddUint64(failureCounter, 1)
 		return
 	}
-	_, err = io.Copy(part, file)
-	if err != nil {
+	if _, err = io.Copy(part, file); err != nil {
 		fmt.Printf("[Gagal] Error menyalin file ke body: %v\n", err)
 		atomic.AddUint64(failureCounter, 1)
 		return
 	}
 	writer.Close()
 
-	req, err := http.NewRequest("POST", endpointURL, &requestBody)
+	req, err := http.NewRequest("POST", config.EndpointURL, &requestBody)
 	if err != nil {
 		fmt.Printf("[Gagal] Error membuat request: %v\n", err)
 		atomic.AddUint64(failureCounter, 1)
 		return
 	}
-
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	req.Header.Set("Authorization", "Bearer "+jwtToken)
+	req.Header.Set("Authorization", "Bearer "+config.JWTToken)
+	req.Header.Set("Accept", "application/json")
 
-	client := &http.Client{
-		Timeout: time.Minute * 120,
-	}
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("[Gagal] Error saat mengirim request: %v\n", err)
@@ -82,7 +87,7 @@ func sendRequest(wg *sync.WaitGroup, successCounter *uint64, failureCounter *uin
 		return
 	}
 
-	if resp.StatusCode == 200 {
+	if resp.StatusCode == http.StatusOK {
 		atomic.AddUint64(successCounter, 1)
 		fmt.Printf("[Berhasil] Status: %s, Response: %s\n", resp.Status, string(bodyBytes))
 	} else {
@@ -92,8 +97,27 @@ func sendRequest(wg *sync.WaitGroup, successCounter *uint64, failureCounter *uin
 }
 
 func main() {
-	fmt.Printf("🚀 Memulai load test ke: %s\n", endpointURL)
-	fmt.Printf("👥 Jumlah pengguna konkuren: %d\n\n", concurrentUsers)
+	config := Config{
+		EndpointURL:     endpointURL,
+		ImagePath:       imagePath,
+		JWTToken:        jwtToken,
+		AttendanceID:    attendanceId,
+		CheckType:       checkType,
+		ConcurrentUsers: concurrentUsers,
+		RequestTimeout:  60 * time.Minute,
+	}
+
+	client := &http.Client{
+		Timeout: config.RequestTimeout,
+		Transport: &http.Transport{
+			MaxIdleConns:        config.ConcurrentUsers + 10,
+			MaxIdleConnsPerHost: config.ConcurrentUsers + 10,
+			IdleConnTimeout:     90 * time.Minute,
+		},
+	}
+
+	fmt.Printf("🚀 Memulai load test ke: %s\n", config.EndpointURL)
+	fmt.Printf("👥 Jumlah pengguna konkuren: %d\n\n", config.ConcurrentUsers)
 
 	var wg sync.WaitGroup
 	var successCounter uint64
@@ -101,9 +125,9 @@ func main() {
 
 	startTime := time.Now()
 
-	for i := 0; i < concurrentUsers; i++ {
+	for i := 0; i < config.ConcurrentUsers; i++ {
 		wg.Add(1)
-		go sendRequest(&wg, &successCounter, &failureCounter)
+		go sendRequest(&wg, client, config, &successCounter, &failureCounter)
 	}
 
 	wg.Wait()
