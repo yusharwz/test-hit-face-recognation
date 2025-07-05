@@ -20,7 +20,7 @@ const (
 	imagePath       = "1.jpg"
 	attendanceId    = "c76be934-07bf-4a80-a0ab-e1700594f357"
 	checkType       = "checkIn"
-	concurrentUsers = 500
+	concurrentUsers = 100
 )
 
 func sendRequest(wg *sync.WaitGroup, successCounter *uint64, failureCounter *uint64) {
