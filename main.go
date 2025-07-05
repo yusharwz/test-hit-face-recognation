@@ -65,7 +65,7 @@ func sendRequest(wg *sync.WaitGroup, successCounter *uint64, failureCounter *uin
 	req.Header.Set("Authorization", "Bearer "+jwtToken)
 
 	client := &http.Client{
-		Timeout: time.Second * 120000,
+		Timeout: time.Minute * 120,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -75,16 +75,19 @@ func sendRequest(wg *sync.WaitGroup, successCounter *uint64, failureCounter *uin
 	}
 	defer resp.Body.Close()
 
-	if (resp.StatusCode >= 200 && resp.StatusCode < 300) || resp.StatusCode == 422 {
+	bodyBytes, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		atomic.AddUint64(failureCounter, 1)
+		fmt.Printf("[Gagal] Status: %s. Gagal membaca response body: %v\n", resp.Status, readErr)
+		return
+	}
+
+	if resp.StatusCode == 200 {
 		atomic.AddUint64(successCounter, 1)
+		fmt.Printf("[Berhasil] Status: %s, Response: %s\n", resp.Status, string(bodyBytes))
 	} else {
 		atomic.AddUint64(failureCounter, 1)
-		bodyBytes, readErr := io.ReadAll(resp.Body)
-		if readErr != nil {
-			fmt.Printf("[Gagal] Status: %s. Gagal membaca response body: %v\n", resp.Status, readErr)
-		} else {
-			fmt.Printf("[Gagal] Status: %s, Response: %s\n", resp.Status, string(bodyBytes))
-		}
+		fmt.Printf("[Gagal] Status: %s, Response: %s\n", resp.Status, string(bodyBytes))
 	}
 }
 
@@ -108,7 +111,7 @@ func main() {
 
 	fmt.Println("\n--- Hasil Load Test ---")
 	fmt.Printf("✅ Request Berhasil: %d\n", successCounter)
-	fmt.Printf("❌ Request Gagal   : %d\n", failureCounter)
-	fmt.Printf("⏱️  Waktu Selesai   : %.2f detik\n", duration.Seconds())
+	fmt.Printf("❌ Request Gagal   : %d\n", failureCounter)
+	fmt.Printf("⏱️  Waktu Selesai   : %.2f detik\n", duration.Seconds())
 	fmt.Println("-----------------------")
 }
