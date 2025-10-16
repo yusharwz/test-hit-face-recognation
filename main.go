@@ -15,12 +15,12 @@ import (
 
 // --- KONFIGURASI YANG PERLU ANDA UBAH ---
 const (
-	endpointURL = "https://sikomo.ragdalion.com:61524/api/app-user/attendance/verify-face"
-	// endpointURL     = "https://facer.yusharwz.my.id/api/v1/recognizes"
-	jwtToken  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7ImlkIjoiMGYzNDQwNDgtNDYwMS00MzZkLWIyMjMtMWUxZmRiZjQ0NzY1IiwibmlrIjoiYzAzNDc1YjItMDVmZi00Y2NhLWFhN2EtZTk2ZDk5ZTcxYjAxIiwiZW1haWwiOiJ0ZXN0aW5nQGdtYWlsLmNvbSIsImZ1bGxuYW1lIjoiVGVzdGluZyIsIm1hY0FkZHJlc3MiOm51bGwsInN0cnVjdHVyYWxQb3NpdGlvbiI6Ii0iLCJmdW5jdGlvbmFsUG9zaXRpb24iOiItIiwicGFzc3dvcmRMYXN0VXBkYXRlZEF0IjoiMjAyNS0wNy0wNlQxNjozMjowNi4wNDRaIiwiam9pbkRhdGUiOiIyMDIzLTAxLTAxVDAwOjAwOjAwLjAwMFoiLCJlbmREYXRlIjpudWxsLCJkZXBhcnRtZW50SWQiOiJjMDM0NzViMi0wNWZmLTRjY2EtYWE3YS1lOTZkOTllNzFiMDEiLCJqb2JUaXRsZUlkIjoiNzViNzliMTEtNzNhMC00YjRjLWFlYzItMWQ1OTYyZTE1OTEwIiwiZ3JhZGVJZCI6ImU4NzY1ODNjLTUwNTEtNDY3Yy04OWNmLWFkMDBiNmVkMWE5ZCIsImlzQWN0aXZlIjp0cnVlLCJ3aGl0ZUxpc3QiOmZhbHNlLCJhdmF0YXJQYXRoIjoiaHR0cHM6Ly9zaWtvbW8ucmFnZGFsaW9uLmNvbTo2MTUyNC9pbWFnZXMvdXNlci8wZjM0NDA0OC00NjAxLTQzNmQtYjIyMy0xZTFmZGJmNDQ3NjUvZnJvbnRfMTc1MTg3NzI4MzYwMS5qcGciLCJyb2xlIjp7ImlkIjoiN2EyODhmMzctNmRkYy00MWI1LTliZGUtMDFkMzQ5ODIyMzhjIiwibmFtZSI6IkhSIDMiLCJjcmVhdGVkQXQiOiIyMDI1LTAyLTIwVDAyOjQ4OjA0LjY5OFoiLCJ1cGRhdGVkQXQiOiIyMDI1LTAyLTIwVDAyOjQ4OjA0LjY5OFoiLCJkZWxldGVkQXQiOm51bGx9LCJkZXBhcnRtZW50Ijp7ImlkIjoiYzAzNDc1YjItMDVmZi00Y2NhLWFhN2EtZTk2ZDk5ZTcxYjAxIiwiYmF0aWtDb2RlIjoiMS4xMi4xIiwibmFtZSI6IkhSIEdBIERFUFQiLCJlbmREYXRlIjpudWxsLCJiYXRpa1VwZGF0ZUF0IjoiMjAyNS0wNi0wNFQwOTo1NTozNS4yMjBaIiwiY3JlYXRlZEF0IjoiMjAyNS0wMi0yMVQxMDo1OToxMy43MzRaIiwidXBkYXRlZEF0IjoiMjAyNS0wNi0wNFQwOTo1NTozNS4yMjFaIiwiZGVsZXRlZEF0IjpudWxsfSwiam9iVGl0bGUiOnsiaWQiOiI3NWI3OWIxMS03M2EwLTRiNGMtYWVjMi0xZDU5NjJlMTU5MTAiLCJuYW1lIjoiLSIsImNyZWF0ZWRBdCI6IjIwMjUtMDItMjBUMDI6NDg6MDQuNDg0WiIsInVwZGF0ZWRBdCI6IjIwMjUtMDItMjBUMDI6NDg6MDQuNDg0WiIsImRlbGV0ZWRBdCI6bnVsbH0sImdyYWRlIjp7Im5hbWUiOiJWLUEiLCJpZCI6ImU4NzY1ODNjLTUwNTEtNDY3Yy04OWNmLWFkMDBiNmVkMWE5ZCIsImJhdGlrQ29kZSI6IjVmOWMzYTg2LWEwZGQtNDY1My04Mzg4LWExZWJhMjlkM2RjZCIsImVuZERhdGUiOm51bGwsImJhdGlrVXBkYXRlQXQiOiIyMDI1LTAyLTIwVDAyOjQ4OjA0LjYwNFoiLCJjcmVhdGVkQXQiOiIyMDI1LTAyLTIwVDAyOjQ4OjA0LjYwNFoiLCJ1cGRhdGVkQXQiOiIyMDI1LTAyLTIwVDAyOjQ4OjA0LjYwNFoiLCJkZWxldGVkQXQiOm51bGx9LCJyb2xlSWQiOiI3YTI4OGYzNy02ZGRjLTQxYjUtOWJkZS0wMWQzNDk4MjIzOGMiLCJjcmVhdGVkQXQiOiIyMDI1LTA3LTA2VDE2OjMyOjA2LjA0NVoiLCJ1cGRhdGVkQXQiOiIyMDI1LTA3LTA3VDA5OjI1OjIzLjUzOFoiLCJkZWxldGVkQXQiOm51bGwsInBob25lTnVtYmVyIjoiMDgxMjM0NTY3ODkiLCJ3b3JraW5nU3RhdHVzIjoiUEtXVFQiLCJnZW5kZXIiOiJtYWxlIiwic3RhcnREYXRlIjoiMjAyMy0wMi0wMVQwMDowMDowMC4wMDBaIiwiZWR1Y2F0aW9uIjoiQmFjaGVsb3IncyBEZWdyZWUiLCJiYXRpa1VwZGF0ZWRBdCI6IjIwMjUtMDctMDZUMTE6MTU6MDQuNTg3WiIsIm1hcHBpbmdJbmZvcm1hdGlvbiI6ZmFsc2UsImltYWdlcyI6W3siaWQiOiIwYzg0ZmFiYS0xOTkxLTRlMDEtOWIxNy0zMDAwYWMwNmFhYTUiLCJ1c2VySWQiOiIwZjM0NDA0OC00NjAxLTQzNmQtYjIyMy0xZTFmZGJmNDQ3NjUiLCJsZWZ0U2lkZVVybCI6Imh0dHBzOi8vc2lrb21vLnJhZ2RhbGlvbi5jb206NjE1MjQvaW1hZ2VzL3VzZXIvMGYzNDQwNDgtNDYwMS00MzZkLWIyMjMtMWUxZmRiZjQ0NzY1L2xlZnRfMTc1MTg3NzI4MzU5Ny5qcGciLCJmcm9udFNpZGVVcmwiOiJodHRwczovL3Npa29tby5yYWdkYWxpb24uY29tOjYxNTI0L2ltYWdlcy91c2VyLzBmMzQ0MDQ4LTQ2MDEtNDM2ZC1iMjIzLTFlMWZkYmY0NDc2NS9mcm9udF8xNzUxODc3MjgzNjAxLmpwZyIsInJpZ2h0U2lkZVVybCI6Imh0dHBzOi8vc2lrb21vLnJhZ2RhbGlvbi5jb206NjE1MjQvaW1hZ2VzL3VzZXIvMGYzNDQwNDgtNDYwMS00MzZkLWIyMjMtMWUxZmRiZjQ0NzY1L3JpZ2h0XzE3NTE4NzcyODM2MDIuanBnIiwiY3JlYXRlZEF0IjoiMjAyNS0wNy0wN1QwODozNDo0My42MDZaIiwidXBkYXRlZEF0IjoiMjAyNS0wNy0wN1QwODozNDo0My42MDZaIiwiZGVsZXRlZEF0IjpudWxsfV0sImZjbVRva2VuIjpudWxsLCJwYXNzd29yZExhc3RVcGRhdGVkQXRUb1N0cmluZyI6Ikxhc3QgdXBkYXRlIDE3IGhvdXJzIGFnbyIsImpvYlRpdGxlTmFtZSI6Ii0iLCJsYXN0QWN0aXZlVG9rZW4iOm51bGx9LCJwbGF0Zm9ybSI6ImFwcC11c2VyIiwiaWF0IjoxNzUxODgxMjI3fQ.TiPCgf2itSFQHB1dw25DztKbdtxL1Z7sVdpvB6X-Gzc"
-	imagePath = "1.jpg"
+	// endpointURL = "https://sikomo.ragdalion.com:61524/api/app-user/attendance/verify-face"
+	endpointURL = "https://facer.yusharwz.my.id/api/v1/recognizes"
+	jwtToken    = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlZWY2ZjY1Ny03MTgwLTRkMzAtODk1Yi1mOWMxMjY2ZmY1ZWQifQ.G2SUvXLpsSZMHpYExQtI4qFJyg2NOne9twmEQ32T4Yc"
+	imagePath   = "2.jpg"
 	// attendanceId    = "17354182-13e9-446b-8631-22735c7d2031"
-	attendanceId    = "5a85bff9-9a14-4513-8830-893cf3629b9e"
+	attendanceId    = "95e2a6d5-83de-44ed-a8ea-6dec5d32aa73"
 	checkType       = "checkIn"
 	concurrentUsers = 100
 )
@@ -29,7 +29,7 @@ type Config struct {
 	EndpointURL     string
 	ImagePath       string
 	JWTToken        string
-	AttendanceID    string
+	UserID          string
 	CheckType       string
 	ConcurrentUsers int
 	RequestTimeout  time.Duration
@@ -48,7 +48,7 @@ func sendRequest(wg *sync.WaitGroup, client *http.Client, config Config, success
 
 	var requestBody bytes.Buffer
 	writer := multipart.NewWriter(&requestBody)
-	_ = writer.WriteField("attendanceId", config.AttendanceID)
+	_ = writer.WriteField("userId", config.UserID)
 	_ = writer.WriteField("for", config.CheckType)
 
 	part, err := writer.CreateFormFile("uploadImage", filepath.Base(config.ImagePath))
@@ -71,7 +71,7 @@ func sendRequest(wg *sync.WaitGroup, client *http.Client, config Config, success
 		return
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	req.Header.Set("Authorization", "Bearer "+config.JWTToken)
+	req.Header.Set("X-USER-JWT", config.JWTToken)
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := client.Do(req)
@@ -103,7 +103,7 @@ func main() {
 		EndpointURL:     endpointURL,
 		ImagePath:       imagePath,
 		JWTToken:        jwtToken,
-		AttendanceID:    attendanceId,
+		UserID:          attendanceId,
 		CheckType:       checkType,
 		ConcurrentUsers: concurrentUsers,
 		RequestTimeout:  60 * time.Minute,
