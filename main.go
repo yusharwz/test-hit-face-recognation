@@ -16,10 +16,10 @@ import (
 // --- KONFIGURASI YANG PERLU ANDA UBAH ---
 const (
 	// endpointURL = "https://sikomo.ragdalion.com:61524/api/app-user/attendance/verify-face"
-	// endpointURL = "https://facer.yusharwz.my.id/api/v1/recognizes"
-	endpointURL = "https://lppom-dev.ragdalion.com/api/face-verification-services/v1/recognizes"
-	jwtToken    = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlZWY2ZjY1Ny03MTgwLTRkMzAtODk1Yi1mOWMxMjY2ZmY1ZWQifQ.G2SUvXLpsSZMHpYExQtI4qFJyg2NOne9twmEQ32T4Yc"
-	imagePath   = "2.jpg"
+	endpointURL = "https://facer.yusharwz.my.id/api/v1/recognizes"
+	// endpointURL = "https://lppom-dev.ragdalion.com/api/face-verification-services/v1/recognizes"
+	jwtToken  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlZWY2ZjY1Ny03MTgwLTRkMzAtODk1Yi1mOWMxMjY2ZmY1ZWQifQ.G2SUvXLpsSZMHpYExQtI4qFJyg2NOne9twmEQ32T4Yc"
+	imagePath = "2.jpg"
 	// attendanceId    = "17354182-13e9-446b-8631-22735c7d2031"
 	attendanceId    = "95e2a6d5-83de-44ed-a8ea-6dec5d32aa73"
 	checkType       = "checkIn"
